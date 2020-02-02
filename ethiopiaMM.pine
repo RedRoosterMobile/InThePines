@@ -1,0 +1,112 @@
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © Mojomajor
+
+//@version=4
+
+// Thomas Ranker
+
+
+strategy("EthioFibSma", overlay=true, default_qty_type=strategy.percent_of_equity, pyramiding=0,default_qty_value=50, initial_capital=5000, currency='EUR', slippage=1, commission_type=strategy.commission.percent, commission_value=0.05)
+// 0,1,2,3,5,8,13,21,34,55,89
+
+range1 = 34 //21
+range2 = 55
+range3 = 89
+
+shapeSize = 10
+
+green  = #078930
+yellow = #fcdd09
+red    = #da121a
+
+sma1 = sma(close,range1)
+sma2 = sma(close,range2)
+sma3 = sma(close,range3)
+
+plot(sma1,color=green, linewidth=1)
+plot(sma2, color=yellow, linewidth=2)
+plot(sma3, color=red, linewidth=3)
+
+
+
+myrsi = rsi(close, range3)
+
+//plot(myrsi)
+
+smaTolerancePc = 1.0
+
+isunderlongsma = close <= sma3 * smaTolerancePc
+isoverlongsma = close >= sma3 * (2-smaTolerancePc)
+
+isoverbought = myrsi > 60
+isoversold = myrsi < 40
+
+
+// closes higher than day before
+rising = close[1]>close
+falling = close[1]<close
+
+// opens higher that the day before
+bear = open>open[1]
+bull = open<open[1]
+
+body_bottom = close<open ? close : open
+body_top = close>open ? close : open
+
+
+upper_wick_length = high - body_top
+body_length = body_top - body_bottom
+lower_wick_length = low - body_bottom
+
+
+
+
+//longlowerwick = low-
+// no long entry over 200ma
+
+sma200= sma(close, 200)
+longCondition = crossover(sma1, sma2)  and  isunderlongsma and close < sma3 and close < sma200
+//plotshape(longCondition,title="long",text='long',color=#ffffff, style=shape.arrowup,location=location.belowbar)
+//plotarrow(longCondition ?  1 : na, colorup=green, colordown=red, transp=40)
+
+//TODO: add money management RRR 2:1
+// other exit trade: close price under some sma
+otherShortCondition = close < sma2 and close < sma2   and isoverlongsma and close > sma200
+//moneyManagementCondition = 
+firstShotCondition = (crossunder(sma1, sma2) or isoverlongsma) 
+shortCondition = firstShotCondition and otherShortCondition
+//plotshape(shortCondition,title="short",text='short',color=#ffffff, style=shape.arrowdown,location=location.abovebar)
+//plotarrow(shortCondition ? -1 : na, colorup=green, colordown=red, transp=40)
+    
+
+
+// https://www.tradingview.com/chart/AUDCAD/VkEbtjT7-How-to-Calculate-Pip-Value/
+
+
+// ticks explained
+// https://backtest-rookies.com/2018/06/01/tradingview-working-with-ticks/
+
+// TODO: only close when MM ist hit 2:1
+// exit trade when up 2
+// or down 1
+// limit stop
+
+
+
+// syminfo.mintick tick size in money
+
+// calculate pips to percent?
+// strategy.exit("exit", "long", profit = 10, loss = 5) // generate full exit bracket (profit 10 points, loss 5 points per contract) from entry with name "long"
+
+
+
+if (longCondition)
+    strategy.entry("long", strategy.long )
+    strategy.exit("exit", "long", limit = close*1.10, stop = close*0.95)
+//if (shortCondition)
+//    strategy.close("Long Entry", shortCondition)
+//strategy.entry("Short Entry", strategy.short)
+    // strategy.exit("exit", "long", profit = 10, loss = 5)
+//if (shortCondition)
+//    strategy.close("Long Entry", shortCondition)
+//strategy.entry("Short Entry", strategy.short)

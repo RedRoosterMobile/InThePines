@@ -1,0 +1,40 @@
+//@version=4
+
+// pretty good in 5minute range!
+
+strategy(title="Engulfing Candle Strategy", shorttitle="RSI Swing Signals", overlay=true)
+
+// Get user input
+rsiSource = input(title="RSI Source", type=input.source, defval=close)
+rsiLength = input(title="RSI Length", type=input.integer, defval=14)
+rsiOverbought = input(title="RSI Overbought Level", type=input.integer, defval=70)
+rsiOversold = input(title="RSI Oversold Level", type=input.integer, defval=30)
+
+// Get RSI value
+rsiValue = rsi(rsiSource, rsiLength)
+rsiOB = rsiValue >= rsiOverbought
+rsiOS = rsiValue <= rsiOversold
+
+// Identify engulfing candles
+bullishEC = close > open[1] and close[1] < open[1]
+bearishEC = close < open[1] and close[1] > open[1]
+tradeSignal = ((rsiOS or rsiOS[1]) and bullishEC) or ((rsiOB or rsiOB[1]) and bearishEC)
+
+
+longCondition  = tradeSignal and bullishEC and (strategy.position_size <= 0)
+shortCondition = tradeSignal and bearishEC and (strategy.position_size >= 1)
+
+// Plot signals to chart
+
+
+
+
+if (longCondition)
+    strategy.entry("long", strategy.long)
+
+
+if (shortCondition)
+    strategy.close("long",true)
+
+// Send out an alert if this candle meets our conditions
+// alertcondition(tradeSignal, title="RSI Trade Alert!", message="RSI Swing Signal for XXX")

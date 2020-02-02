@@ -1,0 +1,27 @@
+//@version=4
+// Copyright (c) 2020-present, @Mojomajor
+
+//                      BACKTESTING
+//░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+
+
+enableBacktest = input(title="Enable Backtest?", type=input.bool, defval=false)
+
+testStartYear = input(defval=2016, title="Backtest Start Year",type=input.integer)
+testStartMonth = input(defval=11, title="Backtest Start Month",type=input.integer)
+testStartDay = input(defval=10, title="Backtest Start Day",type=input.integer)
+testPeriodStart = timestamp(testStartYear,testStartMonth,testStartDay,23,0)
+
+testStopYear = input(defval=2018, title="Backtest Stop Year",type=input.integer)
+testStopMonth = input(defval=8, title="Backtest Stop Month",type=input.integer)
+testStopDay = input(defval=17, title="Backtest Stop Day",type=input.integer)
+testPeriodStop = timestamp(testStopYear,testStopMonth,testStopDay,0,0)
+
+// A switch to control background coloring of the test period
+testPeriodBackground = input(title="Color Background?", type=input.bool, defval=true)
+testPeriodBackgroundColor = testPeriodBackground and (time >= testPeriodStart) and (time <= testPeriodStop) ? #00FF00 : na
+bgcolor(testPeriodBackgroundColor, transp=97)
+
+canTrade() =>
+    doBackTest = time >= testPeriodStart and time <= testPeriodStop ? true : false
+    enableBacktest ? doBackTest : true

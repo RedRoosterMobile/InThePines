@@ -1,0 +1,4 @@
+
+find scripts of other people
+
+https://github.com/search?q=plotshape%2Bstrategy.entry&type=Code

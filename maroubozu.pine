@@ -1,0 +1,23 @@
+//@version=4
+// Thomas Ranker
+study(title = "marubozu", overlay = true)
+
+// https://zenandtheartoftrading.com/pinescript/how-to-detect-candle-patterns/
+
+tolerance = input(0.01, title="wick tolerance (%)")
+is_mb=abs(abs(close-open)/(high-low)-1)<=tolerance
+
+is_bullish= close>open
+
+candleColor = is_bullish ? color.green : color.red
+plotshape(is_mb,title="marubozu",text='marubozu',textcolor=color.white,color=candleColor, style=shape.arrowdown,location=location.abovebar)
+
+// bullish engulfing candles
+// engulfing candles
+bullishEC = close > open[1] and close[1] < open[1]
+bearishEC = close < open[1] and close[1] > open[1]
+
+tradeSignal = ((rsiOS or rsiOS[1]) and bullishEC) or ((rsiOB or rsiOB[1]) and bearishEC)
+// Plot signals to chart
+plotshape(bullishEC, title="Long", location=location.belowbar, color=color.green, transp=0, style=shape.triangleup, text="Long")
+plotshape(bearishEC, title="Short", location=location.abovebar, color=color.red, transp=0, style=shape.triangledown, text="Short")

@@ -1,0 +1,60 @@
+//@version=3
+// from: https://kodify.net/tradingview/strategies/vix-reversal-system/
+// Step 1) Define strategy settings
+strategy(title="VIX Reversal", overlay=true,
+     pyramiding=0, initial_capital=100000,
+     scale=scale.left,
+     default_qty_type=strategy.fixed,
+     default_qty_value=100,
+     commission_type=strategy.commission.cash_per_order,
+     commission_value=8, slippage=2)
+
+// Input options for moving averages
+fastMALen = input(title="Fast SMA Length", type=integer, defval=5)
+slowMALen = input(title="Slow SMA Length", type=integer, defval=15)
+
+// Session input options
+sessRange = input(title="Session Time Range", type=session, defval="0930-1550")
+showSessEnd = input(title="Show Session End?", type=bool, defval=true)
+
+// Step 2) Calculate strategy values
+// Fetch VIX data
+vixData = security("CBOE:VIX", period, close)
+
+// Calculate moving averages
+fastSMA = sma(vixData, fastMALen)
+slowSMA = sma(vixData, slowMALen)
+
+// Determine whether price bar falls in session
+inSession = not na(time(period, sessRange))
+
+// Step 3) Output strategy data
+plot(series=fastSMA, color=teal, title="VIX Fast SMA")
+plot(series=slowSMA, color=orange, title="VIX Slow SMA")
+
+// Highlight session end
+bgcolor(color=showSessEnd and not inSession ? teal : na)
+
+// Step 4) Determine long trading conditions
+enterLong = crossunder(fastSMA, slowSMA) and inSession
+
+exitLong = (strategy.position_size > 0) and (not inSession)
+
+// Step 5) Code short trading conditions
+enterShort = crossover(fastSMA, slowSMA) and inSession
+
+exitShort = (strategy.position_size < 0) and (not inSession)
+
+// Step 6) Submit entry orders
+if (enterLong)
+    strategy.entry(id="EL", long=true)
+
+if (enterShort)
+    strategy.entry(id="ES", long=false)
+
+// Step 7) Send exit orders
+if (exitLong)
+    strategy.order(id="XL", long=false, qty=strategy.position_size)
+
+if (exitShort)
+    strategy.order(id="XS", long=true, qty=abs(strategy.position_size))

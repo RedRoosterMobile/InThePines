@@ -1,0 +1,80 @@
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © Mojomajor
+
+//@version=4
+
+// Thomas Ranker
+
+strategy("EthioFibSma", overlay=true, default_qty_type=strategy.percent_of_equity, pyramiding=0,default_qty_value=50, initial_capital=5000, currency='EUR', slippage=1, commission_type=strategy.commission.percent, commission_value=0.05)
+// 0,1,2,3,5,8,13,21,34,55
+
+range1 = 21
+range2 = 34
+range3 = 55
+
+shapeSize = 10
+
+green  = #078930
+yellow = #fcdd09
+red    = #da121a
+
+sma1 = sma(close,range1)
+sma2 = sma(close,range2)
+sma3 = sma(close,range3)
+
+plot(sma1,color=green, linewidth=1)
+plot(sma2, color=yellow, linewidth=2)
+plot(sma3, color=red, linewidth=3)
+
+
+
+myrsi = rsi(close, range3)
+
+//plot(myrsi)
+
+smaTolerancePc = 1.05
+
+isunderlongsma = close <= sma3 * smaTolerancePc
+isoverlongsma = close >= sma3 * (2-smaTolerancePc)
+
+isoverbought = myrsi > 60
+isoversold = myrsi < 40
+
+
+// closes higher than day before
+rising = close[1]>close
+falling = close[1]<close
+
+// opens higher that the day before
+bear = open>open[1]
+bull = open<open[1]
+
+body_bottom = close<open ? close : open
+body_top = close>open ? close : open
+
+
+upper_wick_length = high - body_top
+body_length = body_top - body_bottom
+lower_wick_length = low - body_bottom
+
+
+
+
+//longlowerwick = low-
+
+longCondition = crossover(sma1, sma2)  and  isunderlongsma
+plotshape(longCondition,title="long",text='long',color=#ffffff, style=shape.arrowup,location=location.belowbar)
+plotarrow(longCondition ?  1 : na, colorup=green, colordown=red, transp=40)
+strategy.risk.max_drawdown(50, strategy.percent_of_equity)
+
+// other exit trade: close price under some sma
+otherShortCondition = close < sma3
+shortCondition = (crossunder(sma1, sma2) and isoverlongsma) or otherShortCondition
+//plotshape(shortCondition,title="short",text='short',color=#ffffff, style=shape.arrowdown,location=location.abovebar)
+//plotarrow(shortCondition ? -1 : na, colorup=green, colordown=red, transp=40)
+    
+if (longCondition)
+    strategy.entry("Long Entry", strategy.long)
+if (shortCondition)
+    strategy.close("Long Entry", shortCondition)
+//strategy.entry("Short Entry", strategy.short)

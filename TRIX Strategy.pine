@@ -1,0 +1,103 @@
+//@version=4
+// Copyright (c) 2020-present, @Mojomajor
+// TRIX script may be freely distributed under the MIT license.
+//study("TRIX")
+strategy("TRIX Strategy",calc_on_every_tick=true, default_qty_type=strategy.percent_of_equity, pyramiding=0, default_qty_value=50, initial_capital=5000, currency='EUR', slippage=1, commission_type=strategy.commission.percent, commission_value=0.05)
+//strategy.risk.max_drawdown(10, strategy.percent_of_equity)
+length = input(title="Length", type=input.integer, defval=14)
+mult = input(title="TRIX Value Multiplier", type=input.integer, defval=1)
+signalType = input(title="Signal Smoothing Type", defval="SMA", options=["EMA", "SMA"])
+signalLength = input(title="Signal Smoothing Length", type=input.integer, defval=9)
+src = input(title="Source", type=input.source, defval=close)
+showSignal = input(title="Show Signal Line ?", type=input.bool, defval=true)
+showHistogram = input(title="Show Histogram ?", type=input.bool, defval=false)
+highlightCrossovers = input(title="Highlight TRIX/Signal Crossovers ?", type=input.bool, defval=true)
+highlightZeroCrossovers = input(title="Highlight Zero Line Crossovers ?", type=input.bool, defval=true)
+applyFilling = input(title="Apply Ribbon Filling ?", type=input.bool, defval=false)
+
+triple = ema(ema(ema(src, length), length), length)
+
+trix = mult * roc(triple, 1)
+sma_1 = sma(trix, signalLength)
+ema_1 = ema(trix, signalLength)
+signal = signalType == "SMA" ? sma_1 : ema_1
+
+hist = trix - signal
+histColor = hist >= 0 ? hist[1] < hist ? #26A69A : #B2DFDB : 
+   hist[1] < hist ? #FFCDD2 : #EF5350
+plot(showHistogram ? hist : na, title="Histogram", style=plot.style_columns, color=histColor, transp=0)
+hline(0, title="Zero Level", linestyle=hline.style_dotted)
+
+trendColor = trix > signal ? #0ebb23 : color.red
+
+trixColor = applyFilling ? trendColor : trix > 0 ? #0ebb23 : color.red
+signalColor = applyFilling ? trendColor : #ff9800
+
+trixPlot = plot(trix, title="TRIX", linewidth=2, color=trixColor, transp=0)
+signalPlot = plot(showSignal ? signal : na, title="Signal", color=signalColor, transp=0)
+
+transparent = color.new(color.white, 100)
+
+fillColor = applyFilling ? trendColor : transparent
+fill(trixPlot, signalPlot, color=fillColor, transp=70)
+
+zeroCrossBgColor = highlightZeroCrossovers ? trix > 0 ? color.green : color.red : transparent
+bgcolor(zeroCrossBgColor, transp=90)
+
+
+
+longCondition = highlightCrossovers and crossover(trix, signal)
+shortCondition = highlightCrossovers and crossunder(trix, signal)
+
+
+// long positions
+plotshape(longCondition ? trix : na, title="Crossover", location=location.absolute, style=shape.circle, size=size.tiny, color=color.green, transp=0)
+
+// short positions
+plotshape(shortCondition ? trix : na, title="Crossunder", location=location.absolute, style=shape.circle, size=size.tiny, color=color.red, transp=0)
+
+sma200 = sma(src, 200)
+sma34 = sma(src,34)
+
+// TODO: time frame independent
+// money management..
+
+myrsi= rsi(src,3)
+
+overbought = myrsi > 60
+oversold   = myrsi < 40
+
+
+myatr = atr(14)
+sinfo = syminfo.mintick * 100
+
+mystop =  float(myatr[0] * (sinfo +1 )-1 *1000)
+
+//plot(myatr*float(0.1))
+//plot(myatr)
+stopParameter = src * 0.95 //(low - myatr * syminfo.mintick)*-10
+plot((stopParameter-low)/syminfo.mintick)
+
+
+// long only
+if longCondition and src < sma200
+    strategy.entry("long", strategy.long, when=strategy.position_size <= 0)
+
+if (shortCondition and src > sma200 and strategy.position_size >= 1)
+//if (shortCondition and src > sma200) or (shortCondition and falling(trix,20))
+//if (shortCondition and src > sma200) or ( crossover(src,sma34) and src < sma200 and trix < 0 and falling(trix,20))
+    strategy.close("long", true)
+    //strategy.entry("short", strategy.short)
+    //strategy.exit("exit", "long", profit = 10, loss = 5)
+    //strategy.entry("short", strategy.short)
+    //
+//plot(atr(14)*syminfo.mintick)
+
+
+
+
+//rising(sma34, 8) and src > sma34
+
+
+// or (shortCondition and src < sma200 && falling(src,30)
+//plot(strategy.equity)
