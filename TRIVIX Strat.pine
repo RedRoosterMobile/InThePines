@@ -6,8 +6,28 @@ strategy("TRIVIX Strategy",calc_on_every_tick=true, default_qty_type=strategy.pe
 //strategy.risk.max_drawdown(10, strategy.percent_of_equity)
 
 
-//                      INPUTS
+//                      HOW TO TRADE IT?
 //░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+// - set candles to 2h on VIX(use CBOE! not CFDs on VIX!)
+// - go long with Turbo-Certificate. (rather long running options if you can)
+// - Leverage: 2x or less, since it's not necessary
+// - Knockout FAR below support lines. (e.g. below 8.35 as of 2019 and 2020)
+// - set Stopp Loss above Knockout
+// - use endless Turbos (no due date)
+// - use 50% of your equity each trade (which will be higher after each success trade)
+// - see https://kodify.net/tradingview/strategy-settings/order-size-equity-percentage/
+// https://www.zertifikate.commerzbank.de/product-search/unlimited%20turbo-optionsscheine/all-assettypes/vix%20cboe%20volatility%20index%20future%20feb%202020?CallPutRadio=Call&Barrier1Range-Max=10.65&StrikeRange-Max=10.15
+
+//                      DRAWBACKS
+//░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+// - massive breakouts won't trigger any other signal than sell. 
+// - therefore you will miss out on trading financial panics, chaos, mayhem and isms.
+
+//                      USER INPUTS
+//░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+// - If you check 'Strategy: actively short' you'll make a lot more money (5x), but have a way bigger drawdown (4x)
+// - and you will have a super high risk of beeing stopped out..the sky is the limit in these days
+// - If you set the 'Strategy SMA:' to 180, there seems to a few percent more return
 
 length = input(title="Length", type=input.integer, defval=14)
 mult = input(title="TRIX Value Multiplier", type=input.integer, defval=1)
@@ -84,8 +104,7 @@ bgcolor(zeroCrossBgColor, transp=90)
 
 sma200 = sma(src, baselineSMAlength)
 
-
-//                      ORDERS
+//                      SIGNALS
 //░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
 
 
@@ -93,13 +112,16 @@ longCondition = highlightCrossovers and crossover(trix, signal) and src < sma200
 shortCondition = highlightCrossovers and crossunder(trix, signal) and src > sma200 and strategy.position_size >= 1 and canTrade()
 
 
-// entry plots
+// signal plots
 plotshape(longCondition ? trix : na, title="Crossover", location=location.absolute, style=shape.circle, size=size.tiny, color=color.green, transp=0)
 plotshape(shortCondition ? trix : na, title="Crossunder", location=location.absolute, style=shape.circle, size=size.tiny, color=color.red, transp=0)
 
 
+//                      ORDERS
+//░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+
 if longCondition
-    strategy.entry("long", strategy.long, when=strategy.position_size <= 0)
+    strategy.entry("long", strategy.long)
 
 if (shortCondition and not activelyShort)
     strategy.close("long", true)
