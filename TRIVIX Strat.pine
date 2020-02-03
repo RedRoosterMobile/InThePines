@@ -14,6 +14,7 @@ strategy("TRIVIX Strategy",calc_on_every_tick=true, default_qty_type=strategy.pe
 // - Knockout FAR below support lines. (e.g. below 8.35 as of 2019 and 2020)
 // - set Stopp Loss above Knockout
 // - use endless Turbos (no due date)
+// - OR: Faktor Zertifikat: 1:1 daily https://www.zertifikate.commerzbank.de/product-search/faktor-zertifikate/all-assettypes/vix%20cboe%20volatility%20index%20future%20feb%202020
 // - use 50% of your equity each trade (which will be higher after each success trade)
 // - see https://kodify.net/tradingview/strategy-settings/order-size-equity-percentage/
 // https://www.zertifikate.commerzbank.de/product-search/unlimited%20turbo-optionsscheine/all-assettypes/vix%20cboe%20volatility%20index%20future%20feb%202020?CallPutRadio=Call&Barrier1Range-Max=10.65&StrikeRange-Max=10.15
@@ -44,7 +45,14 @@ drawEquity = input(title="Draw Equity?", type=input.bool, defval=false)
 
 // strategy stuff
 baselineSMAlength = input(title="Strategy: SMA", type=input.integer, defval=200) // 180 seems good in H2
+
+
+stopEnabled = input(title="Strategy: Stopp Loss?", type=input.bool, defval=false)
+stopLossPercentage = input(title="Strategy: SL % drawback", type=input.integer, defval=80) / 100
+
 activelyShort = input(title="Strategy: actively Short?", type=input.bool, defval=false)
+stopEnabledShort = input(title="Strategy: Stopp Loss Shorts?", type=input.bool, defval=false)
+stopLossPercentageShort = input(title="Strategy: SL short % rise", type=input.integer, defval=120) / 100
 
 //                      BACKTESTING
 //░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
@@ -111,8 +119,12 @@ sma200 = sma(src, baselineSMAlength)
 
 
 longCondition = highlightCrossovers and crossover(trix, signal) and src < sma200 and strategy.position_size <= 0 and canTrade()
+
+drawbackStop = stopEnabled ? float(src * stopLossPercentage) : na
+buyPrice = stopEnabled ? src : na
 shortCondition = highlightCrossovers and crossunder(trix, signal) and src > sma200 and strategy.position_size >= 1 and canTrade()
 
+shortStop = stopEnabledShort ? float(src * stopLossPercentageShort) : na
 
 // signal plots
 plotshape(longCondition ? trix : na, title="Crossover", location=location.absolute, style=shape.circle, size=size.tiny, color=color.green, transp=0)
@@ -121,14 +133,25 @@ plotshape(shortCondition ? trix : na, title="Crossunder", location=location.abso
 
 plot(drawEquity ? strategy.equity : na, title="Equity", style=plot.style_columns, color=color.purple, transp=0)
 
+// stops (better paint them into the chart..)
+// plot(drawbackStop)
+// plot(buyPrice)
 //                      ORDERS
 //░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
 
 if longCondition
     strategy.entry("long", strategy.long)
 
+if longCondition and stopEnabled
+    strategy.exit("Stop Loss","long", stop=drawbackStop)
+    // https://backtest-rookies.com/2018/04/13/tradingview-stop-losses/
+
+
 if (shortCondition and not activelyShort)
     strategy.close("long", true)
 
 if (shortCondition and activelyShort)
     strategy.entry("short", strategy.short)
+
+if (shortCondition and activelyShort and stopEnabledShort)
+    strategy.exit("Cover Short","short", stop=shortStop)
