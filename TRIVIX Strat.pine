@@ -9,7 +9,7 @@ strategy("TRIVIX Strategy",calc_on_every_tick=true, default_qty_type=strategy.pe
 //                      HOW TO TRADE IT?
 //░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
 // - set candles to 2h on VIX(use CBOE! not CFDs on VIX!)
-// - go long with Turbo-Certificate. (rather long running options if you can)
+// - go long with Turbo-Certificate. (or rather long running options if you can)
 // - Leverage: 2x or less, since it's not necessary
 // - Knockout FAR below support lines. (e.g. below 8.35 as of 2019 and 2020)
 // - set Stopp Loss above Knockout
@@ -20,6 +20,7 @@ strategy("TRIVIX Strategy",calc_on_every_tick=true, default_qty_type=strategy.pe
 
 //                      DRAWBACKS
 //░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+// - you can never be sure VIX does not drop below 9.. so beware and use stopp loss!
 // - massive breakouts won't trigger any other signal than sell. 
 // - therefore you will miss out on trading financial panics, chaos, mayhem and isms.
 
@@ -39,6 +40,7 @@ showHistogram = input(title="Show Histogram ?", type=input.bool, defval=false)
 highlightCrossovers = input(title="Highlight TRIX/Signal Crossovers ?", type=input.bool, defval=true)
 highlightZeroCrossovers = input(title="Highlight Zero Line Crossovers ?", type=input.bool, defval=true)
 applyFilling = input(title="Apply Ribbon Filling ?", type=input.bool, defval=false)
+drawEquity = input(title="Draw Equity?", type=input.bool, defval=false)
 
 // strategy stuff
 baselineSMAlength = input(title="Strategy: SMA", type=input.integer, defval=200) // 180 seems good in H2
@@ -116,6 +118,8 @@ shortCondition = highlightCrossovers and crossunder(trix, signal) and src > sma2
 plotshape(longCondition ? trix : na, title="Crossover", location=location.absolute, style=shape.circle, size=size.tiny, color=color.green, transp=0)
 plotshape(shortCondition ? trix : na, title="Crossunder", location=location.absolute, style=shape.circle, size=size.tiny, color=color.red, transp=0)
 
+
+plot(drawEquity ? strategy.equity : na, title="Equity", style=plot.style_columns, color=color.purple, transp=0)
 
 //                      ORDERS
 //░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
