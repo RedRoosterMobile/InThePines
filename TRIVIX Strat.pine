@@ -5,6 +5,8 @@
 strategy("TRIVIX Strategy",calc_on_every_tick=true, default_qty_type=strategy.percent_of_equity, pyramiding=0, default_qty_value=50, initial_capital=5000, currency='EUR', slippage=1, commission_type=strategy.commission.percent, commission_value=0.05)
 //strategy.risk.max_drawdown(10, strategy.percent_of_equity)
 
+// Risk Matrix
+// https://docs.google.com/spreadsheets/d/1lEvz_bjApUSMYTpBuGRAaDRMh4LaANw_hp_dVCTqdkI/edit#gid=0
 
 //                      HOW TO TRADE IT?
 //░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
@@ -44,8 +46,7 @@ applyFilling = input(title="Apply Ribbon Filling ?", type=input.bool, defval=fal
 drawEquity = input(title="Draw Equity?", type=input.bool, defval=false)
 
 // strategy stuff
-baselineSMAlength = input(title="Strategy: SMA", type=input.integer, defval=200) // 180 seems good in H2
-
+baselineSMAlength = input(title="Strategy: SMA", type=input.integer, defval=180) // 180 seems good in H2
 
 stopEnabled = input(title="Strategy: Stopp Loss?", type=input.bool, defval=false)
 stopLossPercentage = input(title="Strategy: SL % drawback", type=input.integer, defval=80) / 100
@@ -53,6 +54,9 @@ stopLossPercentage = input(title="Strategy: SL % drawback", type=input.integer, 
 activelyShort = input(title="Strategy: actively Short?", type=input.bool, defval=false)
 stopEnabledShort = input(title="Strategy: Stopp Loss Shorts?", type=input.bool, defval=false)
 stopLossPercentageShort = input(title="Strategy: SL short % rise", type=input.integer, defval=120) / 100
+
+takeProfitStopEnabledShort = input(title="Strategy: Take Profit Shorts?", type=input.bool, defval=false)
+takeProfitStopLossPercentageShort = input(title="Strategy: TP short %", type=input.integer, defval=60) / 100
 
 //                      BACKTESTING
 //░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
