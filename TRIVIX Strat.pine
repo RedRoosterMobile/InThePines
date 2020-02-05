@@ -8,6 +8,10 @@ strategy("TRIVIX Strategy",calc_on_every_tick=true, default_qty_type=strategy.pe
 // Risk Matrix
 // https://docs.google.com/spreadsheets/d/1lEvz_bjApUSMYTpBuGRAaDRMh4LaANw_hp_dVCTqdkI/edit#gid=0
 
+// VIX history
+// https://de.wikipedia.org/wiki/CBOE_Volatility_Index
+
+
 //                      HOW TO TRADE IT?
 //░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
 // - set candles to 2h on VIX(use CBOE! not CFDs on VIX!)

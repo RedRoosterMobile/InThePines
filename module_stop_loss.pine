@@ -23,7 +23,7 @@ shortStop = stopEnabledShort ? float(src * stopLossPercentageShort) : na
 
 // order
 if longCondition
-    strategy.exit("Stop Loss","long", stop=drawbackStop)
+    strategy.exit("Stop Loss","long", stop=drawbackStop, limit=takeProfit)
 
 if (shortCondition and activelyShort)
-    strategy.exit("Cover Short","short", stop=shortStop, limit=takeProfit)
+    strategy.exit("Cover Short","short", stop=shortStop, limit=takeProfitShort)
