@@ -1,0 +1,158 @@
+//@version=4
+// Copyright (c) 2020-present, @Mojomajor
+// This script may be freely distributed if you wanna die slowly and painfully. You'be been warned!
+
+strategy("TRIVIX Strategy long only",calc_on_every_tick=true, default_qty_type=strategy.percent_of_equity, pyramiding=0, default_qty_value=100, initial_capital=5000, currency='EUR', slippage=1, commission_type=strategy.commission.percent, commission_value=0.05)
+//strategy.risk.max_drawdown(10, strategy.percent_of_equity)
+
+// Risk Matrix
+// https://docs.google.com/spreadsheets/d/1lEvz_bjApUSMYTpBuGRAaDRMh4LaANw_hp_dVCTqdkI/edit#gid=0
+
+// VIX history
+// https://de.wikipedia.org/wiki/CBOE_Volatility_Index
+
+
+//                      HOW TO TRADE IT?
+//░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+// - set candles to 2h on VIX(use CBOE! not CFDs on VIX!)
+// - go long with Turbo-Certificate. (or rather long running options if you can)
+// - Leverage: 2x or less, since it's not necessary
+// - Knockout FAR below support lines. (e.g. below 8.35 as of 2019 and 2020)
+// - set Stopp Loss above Knockout
+// - use endless Turbos (no due date)
+// - OR: Faktor Zertifikat: 1:1 daily https://www.zertifikate.commerzbank.de/product-search/faktor-zertifikate/all-assettypes/vix%20cboe%20volatility%20index%20future%20feb%202020
+// - use 50% of your equity each trade (which will be higher after each success trade)
+// - see https://kodify.net/tradingview/strategy-settings/order-size-equity-percentage/
+// https://www.zertifikate.commerzbank.de/product-search/unlimited%20turbo-optionsscheine/all-assettypes/vix%20cboe%20volatility%20index%20future%20feb%202020?CallPutRadio=Call&Barrier1Range-Max=10.65&StrikeRange-Max=10.15
+
+//                      DRAWBACKS
+//░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+// - you can never be sure VIX does not drop below 9.. so beware and use stopp loss!
+// - massive breakouts won't trigger any other signal than sell. 
+// - therefore you will miss out on trading financial panics, chaos, mayhem and isms.
+
+//                      USER INPUTS
+//░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+// - If you check 'Strategy: actively short' you'll make a lot more money (5x), but have a way bigger drawdown (4x)
+// - and you will have a super high risk of beeing stopped out..the sky is the limit in these days
+// - If you set the 'Strategy SMA:' to 180, there seems to a few percent more return
+
+length = input(title="Length", type=input.integer, defval=14)
+mult = input(title="TRIX Value Multiplier", type=input.integer, defval=1)
+signalType = input(title="Signal Smoothing Type", defval="SMA", options=["EMA", "SMA"])
+signalLength = input(title="Signal Smoothing Length", type=input.integer, defval=7)
+src = input(title="Source", type=input.source, defval=close)
+showSignal = input(title="Show Signal Line ?", type=input.bool, defval=true)
+showHistogram = input(title="Show Histogram ?", type=input.bool, defval=false)
+highlightCrossovers = input(title="Highlight TRIX/Signal Crossovers ?", type=input.bool, defval=true)
+highlightZeroCrossovers = input(title="Highlight Zero Line Crossovers ?", type=input.bool, defval=true)
+applyFilling = input(title="Apply Ribbon Filling ?", type=input.bool, defval=false)
+drawEquity = input(title="Draw Equity?", type=input.bool, defval=false)
+
+// strategy stuff
+baselineSMAlength = input(title="Strategy: SMA", type=input.integer, defval=196) // 180 seems good in H2
+
+stopEnabled = input(title="Strategy: Stopp Loss?", type=input.bool, defval=false)
+stopLossPercentage = input(title="Strategy: SL % drawback", type=input.integer, defval=80) / 100
+
+stopEnabledShort = input(title="Strategy: Stopp Loss Shorts?", type=input.bool, defval=false)
+stopLossPercentageShort = input(title="Strategy: SL short % rise", type=input.integer, defval=120) / 100
+
+takeProfitStopEnabledShort = input(title="Strategy: Take Profit Shorts?", type=input.bool, defval=false)
+takeProfitStopLossPercentageShort = input(title="Strategy: TP short %", type=input.integer, defval=60) / 100
+
+//                      BACKTESTING
+//░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+
+
+enableBacktest = input(title="Enable Backtest?", type=input.bool, defval=false)
+
+testStartYear = input(defval=2018, title="Backtest Start Year",type=input.integer)
+testStartMonth = input(defval=1, title="Backtest Start Month",type=input.integer)
+testStartDay = input(defval=1, title="Backtest Start Day",type=input.integer)
+testPeriodStart = timestamp(testStartYear,testStartMonth,testStartDay,23,0)
+
+testStopYear = input(defval=2019, title="Backtest Stop Year",type=input.integer)
+testStopMonth = input(defval=1, title="Backtest Stop Month",type=input.integer)
+testStopDay = input(defval=1, title="Backtest Stop Day",type=input.integer)
+testPeriodStop = timestamp(testStopYear,testStopMonth,testStopDay,0,0)
+
+// A switch to control background coloring of the test period
+testPeriodBackground = input(title="Color Background?", type=input.bool, defval=true)
+testPeriodBackgroundColor = testPeriodBackground and (time >= testPeriodStart) and (time <= testPeriodStop) ? #00FF00 : na
+bgcolor(testPeriodBackgroundColor, transp=97)
+
+canTrade() =>
+    doBackTest = iff(time >= testPeriodStart and time <= testPeriodStop , true, false)
+    enableBacktest ? doBackTest : true
+
+//                      CALCULATION
+//░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+
+
+triple = ema(ema(ema(src, length), length), length)
+
+trix = mult * roc(triple, 1)
+sma_1 = sma(trix, signalLength)
+ema_1 = ema(trix, signalLength)
+signal = signalType == "SMA" ? sma_1 : ema_1
+
+hist = trix - signal
+histColor = hist >= 0 ? hist[1] < hist ? #26A69A : #B2DFDB : 
+   hist[1] < hist ? #FFCDD2 : #EF5350
+plot(showHistogram ? hist : na, title="Histogram", style=plot.style_columns, color=histColor, transp=0)
+hline(0, title="Zero Level", linestyle=hline.style_dotted)
+
+trendColor = trix > signal ? #0ebb23 : color.red
+
+trixColor = applyFilling ? trendColor : trix > 0 ? #0ebb23 : color.red
+signalColor = applyFilling ? trendColor : #ff9800
+
+trixPlot = plot(trix, title="TRIX", linewidth=2, color=trixColor, transp=0)
+signalPlot = plot(showSignal ? signal : na, title="Signal", color=signalColor, transp=0)
+
+transparent = color.new(color.white, 100)
+
+fillColor = applyFilling ? trendColor : transparent
+fill(trixPlot, signalPlot, color=fillColor, transp=70)
+
+zeroCrossBgColor = highlightZeroCrossovers ? trix > 0 ? color.green : color.red : transparent
+bgcolor(zeroCrossBgColor, transp=90)
+
+sma200 = sma(src, baselineSMAlength)
+
+//                      SIGNALS
+//░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+
+
+longCondition = highlightCrossovers and crossover(trix, signal) and src < sma200 and strategy.position_size <= 0 and canTrade()
+
+drawbackStop = stopEnabled ? float(src * stopLossPercentage) : na
+buyPrice = stopEnabled ? src : na
+shortCondition = highlightCrossovers and crossunder(trix, signal) and src > sma200 and strategy.position_size >= 1 and canTrade()
+
+shortStop = stopEnabledShort ? float(src * stopLossPercentageShort) : na
+
+// signal plots
+plotshape(longCondition ? trix : na, title="Crossover", location=location.absolute, style=shape.circle, size=size.tiny, color=color.green, transp=0)
+plotshape(shortCondition ? trix : na, title="Crossunder", location=location.absolute, style=shape.circle, size=size.tiny, color=color.red, transp=0)
+
+
+plot(drawEquity ? strategy.equity : na, title="Equity", style=plot.style_columns, color=color.purple, transp=0)
+
+// stops (better paint them into the chart..)
+// plot(drawbackStop)
+// plot(buyPrice)
+//                      ORDERS
+//░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+
+if longCondition
+    strategy.entry("long", strategy.long)
+
+if longCondition and stopEnabled
+    strategy.exit("Stop Loss","long", stop=drawbackStop)
+    // https://backtest-rookies.com/2018/04/13/tradingview-stop-losses/
+
+
+if (shortCondition)
+    strategy.close("long", true)

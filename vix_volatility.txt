@@ -1,0 +1,12 @@
+
+
+implied volatility of S&P 500 within the next 30 days
+vixPc * sqrt(365/30)
+
+implied volatility of S&P 500 within the next 60 days
+vixPc * sqrt(365/60)
+
+
+VXG2020 = Vix Futures. Usually higher than vix itself
+VXX = Index of first two futures of VIX. ALWAYS falling
+VX1! = VIX Futures, current contract in front

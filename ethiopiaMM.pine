@@ -98,11 +98,12 @@ shortCondition = firstShotCondition and otherShortCondition
 // calculate pips to percent?
 // strategy.exit("exit", "long", profit = 10, loss = 5) // generate full exit bracket (profit 10 points, loss 5 points per contract) from entry with name "long"
 
-
+// https://www.tradingview.com/chart/DASHUSD/PHD0xsgE-The-Power-of-Stop-Loss-and-Risk-Reward-in-trading/
 
 if (longCondition)
     strategy.entry("long", strategy.long )
-    strategy.exit("exit", "long", limit = close*1.10, stop = close*0.95)
+    //strategy.exit("exit", "long", limit = close*1.10, stop = close*0.95)
+    strategy.exit("exit", "long", profit = 10, loss = 5)
 //if (shortCondition)
 //    strategy.close("Long Entry", shortCondition)
 //strategy.entry("Short Entry", strategy.short)
